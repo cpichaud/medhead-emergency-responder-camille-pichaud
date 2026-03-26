@@ -1,0 +1,23 @@
+/* body {
+    background-color: #f8f9fa;
+} */
+
+.logo-medhead {
+    max-width: 150px;
+    margin-bottom: 20px;
+}
+
+.result-card {
+    border-left: 5px solid #198754;
+}
+
+.btn-primary {
+    background-color: #04aac6 !important;
+    border-color: #04aac6 !important;
+}
+
+.btn-primary:hover {
+    background-color: #ffffff !important;
+    border-color: #04aac6 !important;
+    color: #04aac6 !important;
+}
