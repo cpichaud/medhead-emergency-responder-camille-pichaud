@@ -2,7 +2,6 @@ package com.medhead.emergency_responder.service;
 
 import com.medhead.emergency_responder.model.Hospital;
 import com.medhead.emergency_responder.repository.HospitalRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,10 +13,13 @@ import java.util.Optional;
 @Service
 public class HospitalService {
 
-    @Autowired
-    private HospitalRepository hospitalRepository;
+    private final HospitalRepository hospitalRepository;
+    private final RestTemplate restTemplate;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    public HospitalService(HospitalRepository hospitalRepository, RestTemplate restTemplate) {
+        this.hospitalRepository = hospitalRepository;
+        this.restTemplate = restTemplate;
+    }
 
     public Optional<Hospital> findBestHospital(String specialism, double pLat, double pLon) {
         List<Hospital> candidates = hospitalRepository.findAvailableBySpecialism(specialism);
