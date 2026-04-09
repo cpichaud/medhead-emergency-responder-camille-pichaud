@@ -1,0 +1,52 @@
+name: Pipeline CI/CD MedHead
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./emergency-responder
+
+    steps:
+    - name: Récupérer le code source
+      uses: actions/checkout@v4
+
+    - name: Configurer Java JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'maven'
+
+    - name: Donner les droits d'exécution au Maven Wrapper
+      run: chmod +x mvnw
+
+    - name: Exécuter les tests Back-end
+      run: ./mvnw clean test
+
+  build-and-test-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./medhead-front
+
+    steps:
+    - name: Récupérer le code source
+      uses: actions/checkout@v4
+
+    - name: Configurer Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Installer les dépendances NPM
+      run: npm install
+
+    - name: Lancer le serveur de dev et exécuter Cypress
+      run: npx start-server-and-test 'npm run dev' http://localhost:5173 'npx cypress run'
