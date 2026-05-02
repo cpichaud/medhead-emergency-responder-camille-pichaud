@@ -12,10 +12,12 @@ Preuve de Concept (PoC) pour le système d'affectation des lits d'urgence MedHea
 ## Installation
 
 1. Cloner le dépôt sur votre machine locale :
-   ```bash git clone https://github.com/cpichaud/medhead-emergency-responder-camille-pichaud.git
+   ```bash
+   git clone https://github.com/cpichaud/medhead-emergency-responder-camille-pichaud.git
 
 2. Cloner le dépôt d'architecture, contenant le document de Reporting et les livrables TOGAF :
-   ```bash git clone 
+   ```bash
+   git clone https://github.com/cpichaud/Faites-adherer-les-parties-prenantes-avec-un-POC-Camille-PICHAUD.git
 
 ## Back-end (Spring Boot / Java)
 
