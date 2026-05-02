@@ -12,10 +12,11 @@ public class BedReservationListener {
     private static final Logger logger = LoggerFactory.getLogger(BedReservationListener.class);
 
     @EventListener
-    @Async
+    @Async("taskExecutor")
     public void handleBedReservationEvent(BedReservationEvent event) {
-        logger.info("Événement intercepté (asynchrone)");
-        logger.info("Demande de réservation d'un lit envoyée au système de l'hôpital [{}] (ID: {})", 
-                    event.getHospitalName(), event.getHospitalId());
+        if (logger.isDebugEnabled()) {
+            logger.debug("Réservation de lit déclenchée asynchrone - Hôpital: {} (ID: {})", 
+                         event.getHospitalName(), event.getHospitalId());
+        }
     }
 }
