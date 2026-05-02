@@ -1,6 +1,7 @@
 package com.medhead.emergency_responder.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 @Entity
@@ -8,7 +9,6 @@ public class Hospital {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-
     private Long id;
 
     private String name;
@@ -22,6 +22,7 @@ public class Hospital {
     @ElementCollection
     @CollectionTable(name = "hospital_specialisms", joinColumns = @JoinColumn(name = "hospital_id"))
     @Column(name = "specialism_name")
+    @JsonIgnore
     private List<String> specialisms;
 
     public Hospital() {}
@@ -37,45 +38,42 @@ public class Hospital {
     public Long getId() { 
         return id; 
     }
+    public void setId(Long id) { 
+        this.id = id; 
+    }
     
     public String getName() { 
         return name; 
     }
-
     public void setName(String name) { 
         this.name = name; 
     }
 
-    public int getAvailableBeds() {
+    public int getAvailableBeds() { 
         return availableBeds; 
     }
-
     public void setAvailableBeds(int availableBeds) { 
         this.availableBeds = availableBeds; 
-
     }
 
-    public double getLatitude() {
+    public double getLatitude() { 
         return latitude; 
     }
+    public void setLatitude(double latitude) {
+         this.latitude = latitude; 
+        }
 
-    public void setLatitude(double latitude) { 
-        this.latitude = latitude; 
-    }
-
-    public double getLongitude() { 
-        return longitude; 
-    }
-
+    public double getLongitude() {
+         return longitude; 
+        }
     public void setLongitude(double longitude) {
-        this.longitude = longitude; 
-    }
+         this.longitude = longitude; 
+        }
 
     public List<String> getSpecialisms() {
-        return specialisms; 
-    }
-
+         return specialisms; 
+        }
     public void setSpecialisms(List<String> specialisms) {
-        this.specialisms = specialisms; 
-    }
+         this.specialisms = specialisms; 
+        }
 }

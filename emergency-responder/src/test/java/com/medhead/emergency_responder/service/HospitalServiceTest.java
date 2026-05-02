@@ -1,94 +1,77 @@
 package com.medhead.emergency_responder.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.medhead.emergency_responder.model.Hospital;
 import com.medhead.emergency_responder.repository.HospitalRepository;
+import com.medhead.emergency_responder.event.BedReservationEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class HospitalServiceTest {
+public class HospitalServiceTest {
 
     @Mock
     private HospitalRepository hospitalRepository;
 
     @Mock
-    private RestTemplate restTemplate;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private HospitalService hospitalService;
 
-    private Hospital hospitalA;
-    private Hospital hospitalB;
-    private ObjectMapper objectMapper;
+    private Hospital hospital1;
+    private Hospital hospital2;
 
-  @BeforeEach
+    @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
+        hospital1 = new Hospital("Fred Brooks Cardio", 2, 51.500, -0.100, Arrays.asList("Cardiologie"));
+        hospital1.setId(16L);
         
-        hospitalA = new Hospital();
-        hospitalA.setName("Hôpital Proche");
-        hospitalA.setLatitude(48.8566);
-        hospitalA.setLongitude(2.3522);
-
-        hospitalB = new Hospital();
-        hospitalB.setName("Hôpital Loin");
-        hospitalB.setLatitude(45.7640);
-        hospitalB.setLongitude(4.8357);
+        hospital2 = new Hospital("Julia Crusher Cardio", 5, 51.505, -0.110, Arrays.asList("Cardiologie"));
+        hospital2.setId(17L);
     }
 
     @Test
-    void findBestHospital_ShouldReturnEmpty_WhenNoHospitalAvailable() {
-        when(hospitalRepository.findAvailableBySpecialism("Cardiology")).thenReturn(Collections.emptyList());
+    void findBestHospital_ShouldReturnNearestHospital_WhenCandidatesExist() {
+        String specialism = "Cardiologie";
+        double patientLat = 51.502;
+        double patientLon = -0.105;
 
-        Optional<Hospital> result = hospitalService.findBestHospital("Cardiology", 48.0, 2.0);
+        when(hospitalRepository.findAvailableBySpecialismInArea(
+                eq(specialism), anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                .thenReturn(Arrays.asList(hospital1, hospital2));
 
-        assertTrue(result.isEmpty(), "Le résultat devrait être vide si aucun hôpital ne correspond");
-    }
-
-    @Test
-    void findBestHospital_ShouldReturnClosestHospital_UsingOsrmAPI() throws Exception {
-        when(hospitalRepository.findAvailableBySpecialism("Cardiology")).thenReturn(Arrays.asList(hospitalA, hospitalB));
-
-        JsonNode mockResponseClose = objectMapper.readTree("{\"routes\":[{\"distance\":1500.0}]}");
-        JsonNode mockResponseFar = objectMapper.readTree("{\"routes\":[{\"distance\":50000.0}]}");
-
-        when(restTemplate.getForObject(anyString(), eq(JsonNode.class)))
-                .thenReturn(mockResponseClose)
-                .thenReturn(mockResponseFar);
-
-        Optional<Hospital> result = hospitalService.findBestHospital("Cardiology", 48.0, 2.0);
+        Optional<Hospital> result = hospitalService.findBestHospital(specialism, patientLat, patientLon);
 
         assertTrue(result.isPresent());
-        assertEquals("Hôpital Proche", result.get().getName());
+        verify(eventPublisher, times(1)).publishEvent(any(BedReservationEvent.class));
     }
 
     @Test
-    void findBestHospital_ShouldUseEuclideanFallback_WhenOsrmApiFails() {
-        when(hospitalRepository.findAvailableBySpecialism("Cardiology")).thenReturn(Arrays.asList(hospitalA, hospitalB));
-        when(restTemplate.getForObject(anyString(), eq(JsonNode.class))).thenThrow(new RuntimeException("OSRM API DOWN"));
+    void findBestHospital_ShouldReturnEmpty_WhenNoCandidates() {
+        String specialism = "Neurologie";
+        double patientLat = 51.502;
+        double patientLon = -0.105;
 
-        double patientLat = 48.8500;
-        double patientLon = 2.3500;
+        when(hospitalRepository.findAvailableBySpecialismInArea(
+                eq(specialism), anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                .thenReturn(Collections.emptyList());
 
-        Optional<Hospital> result = hospitalService.findBestHospital("Cardiology", patientLat, patientLon);
+        Optional<Hospital> result = hospitalService.findBestHospital(specialism, patientLat, patientLon);
 
-        assertTrue(result.isPresent());
-        assertEquals("Hôpital Proche", result.get().getName());
+        assertFalse(result.isPresent());
+        verify(eventPublisher, never()).publishEvent(any(BedReservationEvent.class));
     }
 }

@@ -12,6 +12,8 @@ public class BedReservationEvent extends ApplicationEvent {
         this.hospitalName = hospitalName;
     }
 
+    
+
     public Long getHospitalId() {
         return hospitalId;
     }
