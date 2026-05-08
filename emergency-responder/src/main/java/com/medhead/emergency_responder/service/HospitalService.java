@@ -3,28 +3,24 @@ package com.medhead.emergency_responder.service;
 import com.medhead.emergency_responder.model.Hospital;
 import com.medhead.emergency_responder.repository.HospitalRepository;
 import com.medhead.emergency_responder.event.BedReservationEvent;
+import com.medhead.emergency_responder.dto.DistanceMatrixResponse; // On appelle le nouveau fichier ici
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.*;
 
 @Service
 public class HospitalService {
-
     private static final Logger logger = LoggerFactory.getLogger(HospitalService.class);
     
-    // Zone de recherche fixée à environ 50km
-    private static final double SEARCH_RADIUS = 0.5;
-
     private final HospitalRepository hospitalRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final RestTemplate restTemplate;
 
-    @Value("${google.maps.api.key:mock-key}")
+    @Value("${google.maps.api.key}")
     private String googleMapsApiKey;
 
     public HospitalService(HospitalRepository hospitalRepository, ApplicationEventPublisher eventPublisher, RestTemplate restTemplate) {
@@ -34,17 +30,9 @@ public class HospitalService {
     }
 
     public Optional<Hospital> findBestHospital(String specialism, double pLat, double pLon) {
-        double minLat = pLat - SEARCH_RADIUS;
-        double maxLat = pLat + SEARCH_RADIUS;
-        double minLon = pLon - (SEARCH_RADIUS / Math.cos(Math.toRadians(pLat)));
-        double maxLon = pLon + (SEARCH_RADIUS / Math.cos(Math.toRadians(pLat)));
-
+        // Recherche des hôpitaux proches (rayon de 0.5 degré)
         List<Hospital> candidates = hospitalRepository.findAvailableBySpecialismInArea(
-                specialism, minLat, maxLat, minLon, maxLon);
-
-        if (candidates.isEmpty()) {
-            return Optional.empty();
-        }
+                specialism, pLat - 0.5, pLat + 0.5, pLon - 0.5, pLon + 0.5);
 
         Hospital nearest = null;
         double shortestDuration = Double.MAX_VALUE;
@@ -60,36 +48,39 @@ public class HospitalService {
 
         if (nearest != null) {
             eventPublisher.publishEvent(new BedReservationEvent(this, nearest.getId(), nearest.getName()));
-            return Optional.of(nearest);
         }
-
-        return Optional.empty();
+        return Optional.ofNullable(nearest);
     }
 
-    private double getRouteDuration(double startLat, double startLon, double endLat, double endLon) {
-        /*
-         * Implémentation réelle avec Google Maps API.
-         * Commentée pour la PoC afin d'éviter la latence réseau et valider le test de charge (<200ms pour 800 req/s).
-         * 
-         * String url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" + startLat + "," + startLon + 
-         *              "&destinations=" + endLat + "," + endLon + "&key=" + googleMapsApiKey;
-         * try {
-         *     DistanceMatrixResponse response = restTemplate.getForObject(url, DistanceMatrixResponse.class);
-         *     if (response != null && "OK".equals(response.getStatus())) {
-         *         return response.getRows().get(0).getElements().get(0).getDuration().getValue();
-         *     }
-         * } catch (Exception e) {
-         *     logger.error("Erreur lors de l'appel à l'API de routage", e);
-         * }
-         * return Double.MAX_VALUE;
-         */
+    private double getRouteDuration(double sLat, double sLon, double eLat, double eLon) {
+        // return (Math.abs(sLat - eLat) + Math.abs(sLon - eLon)) * 10000;
 
-        // Bouchon (Mock) utilisé pour les tests de performance de la PoC.
-        // On additionne l'écart de latitude et l'écart de longitude. 
-        // Cela respecte l'exigence "pas de distance à vol d'oiseau" en simulant un trajet par blocs de rues.
-        double diffLat = Math.abs(startLat - endLat);
-        double diffLon = Math.abs(startLon - endLon);
-        
-        return (diffLat + diffLon) * 10000;
+        String url = String.format(
+            "https://maps.googleapis.com/maps/api/distancematrix/json?origins=%f,%f&destinations=%f,%f&key=%s",
+            sLat, sLon, eLat, eLon, googleMapsApiKey
+        );
+        logger.info("Requête Distance Matrix : départ({},{}), destination({},{})", sLat, sLon, eLat, eLon);
+
+        try {
+            DistanceMatrixResponse response = restTemplate.getForObject(url, DistanceMatrixResponse.class);
+            
+            if (response != null) {
+                if ("OK".equals(response.status) && !response.rows.isEmpty()) {
+                    double duration = response.rows.get(0).elements.get(0).duration.value;
+                    logger.info("Calcul d'itinéraire validé. Durée : {} secondes", duration);
+                    return duration;
+                } else {
+                    // Log technique en cas de refus de service (quota, clé, etc.)
+                    logger.warn("Réponse API reçue mais invalide. Statut : {}", response.status);
+                }
+            }
+        } catch (Exception e) {
+            // Log d'erreur réseau (Timeouts, DNS, etc.)
+            logger.error("Erreur de communication avec le fournisseur de cartographie : {}", e.getMessage());
+        }
+
+        logger.info(" calcul de distance par approximation.");
+        return (Math.abs(sLat - eLat) + Math.abs(sLon - eLon)) * 10000;
+
     }
 }
