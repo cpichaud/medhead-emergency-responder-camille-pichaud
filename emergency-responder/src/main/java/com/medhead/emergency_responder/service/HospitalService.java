@@ -10,8 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-// <--- CET IMPORT EST OBLIGATOIRE
 import java.util.*;
 
 @Service

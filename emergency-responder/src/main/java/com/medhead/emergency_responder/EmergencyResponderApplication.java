@@ -26,9 +26,9 @@ public class EmergencyResponderApplication {
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(50);      // 50 threads prêts en permanence
-        executor.setMaxPoolSize(100);     // Jusqu'à 100 threads si besoin
-        executor.setQueueCapacity(10000); // File d'attente pour absorber les pics
+        executor.setCorePoolSize(50);
+        executor.setMaxPoolSize(100);
+        executor.setQueueCapacity(10000);
         executor.setThreadNamePrefix("MedHeadAsync-");
         executor.initialize();
         return executor;

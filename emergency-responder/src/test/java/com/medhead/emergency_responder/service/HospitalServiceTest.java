@@ -33,14 +33,14 @@ public class HospitalServiceTest {
     private ApplicationEventPublisher eventPublisher;
 
     @Mock
-    private RestTemplate restTemplate; // Mock indispensable pour OSRM
+    private RestTemplate restTemplate;
 
     @InjectMocks
     private HospitalService hospitalService;
 
     @BeforeEach
     void setUp() throws Exception {
-        // Injection de l'URL OSRM qui normalement vient de application.properties
+        // Injection de l'URL OSRM
         ReflectionTestUtils.setField(hospitalService, "osrmApiUrl", "http://test-url/");
 
         // Simulation d'une réponse JSON valide d'OSRM (360 secondes = 6 minutes)

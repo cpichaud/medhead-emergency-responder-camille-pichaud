@@ -35,7 +35,7 @@ public class Hospital {
         this.specialisms = specialisms;
     }
 
-     // Cette donnée n'est pas stockée en BDD
+    // Cette donnée n'est pas stockée en BDD
     @Transient
     private double travelTime;
 
