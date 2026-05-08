@@ -10,7 +10,7 @@ import java.util.concurrent.Executor;
 
 @SpringBootApplication
 @EnableAsync
-public class EmergencyResponderApplication {
+public class EmergencyResponderApplicationTests {
 
     public static void main(String[] args) {
         SpringApplication.run(EmergencyResponderApplication.class, args);
