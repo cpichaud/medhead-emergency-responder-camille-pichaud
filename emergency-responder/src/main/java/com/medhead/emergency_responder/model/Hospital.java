@@ -35,6 +35,18 @@ public class Hospital {
         this.specialisms = specialisms;
     }
 
+    // Cette donnée n'est pas stockée en BDD
+    @Transient
+    private double travelTime;
+
+    public double getTravelTime() { 
+        return travelTime; 
+    }
+    
+    public void setTravelTime(double travelTime) { 
+        this.travelTime = travelTime; 
+    }
+
     public Long getId() { 
         return id; 
     }
