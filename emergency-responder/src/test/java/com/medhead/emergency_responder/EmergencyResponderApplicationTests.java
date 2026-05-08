@@ -1,36 +1,43 @@
 package com.medhead.emergency_responder;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.client.RestTemplate;
 import java.util.concurrent.Executor;
 
-@SpringBootApplication
-@EnableAsync
-public class EmergencyResponderApplicationTests {
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-    public static void main(String[] args) {
-        SpringApplication.run(EmergencyResponderApplication.class, args);
+/**
+ * Test de validation du contexte Spring Boot.
+ * Ce test vérifie que l'application démarre correctement et que les Beans
+ * critiques pour le projet MedHead sont bien chargés.
+ */
+@SpringBootTest
+class EmergencyResponderApplicationTests {
+
+    @Autowired
+    private ApplicationContext context;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Autowired
+    private Executor taskExecutor;
+
+    @Test
+    void contextLoads() {
+        // Vérifie que le contexte Spring est bien initialisé
+        assertNotNull(context, "Le contexte Spring devrait être chargé.");
     }
 
-    // Bean nécessaire pour que HospitalService puisse envoyer des requêtes HTTP
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
-
-    // Configuration pour encaisser les pics de charge (800 req/s)
-    @Bean(name = "taskExecutor")
-    public Executor taskExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(50);      // 50 threads prêts en permanence
-        executor.setMaxPoolSize(100);     // Jusqu'à 100 threads si besoin
-        executor.setQueueCapacity(10000); // File d'attente pour absorber les pics
-        executor.setThreadNamePrefix("MedHeadAsync-");
-        executor.initialize();
-        return executor;
+    @Test
+    void importantBeansArePresent() {
+        // Vérifie que le RestTemplate (pour OSRM) est disponible
+        assertNotNull(restTemplate, "Le Bean RestTemplate pour les appels OSRM est manquant.");
+        
+        // Vérifie que l'Executor (pour la charge 800 req/s) est disponible
+        assertNotNull(taskExecutor, "Le Bean TaskExecutor pour la haute disponibilité est manquant.");
     }
 }
