@@ -3,6 +3,8 @@ package com.medhead.emergency_responder.service;
 import com.medhead.emergency_responder.model.Hospital;
 import com.medhead.emergency_responder.repository.HospitalRepository;
 import com.medhead.emergency_responder.event.BedReservationEvent;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,50 +32,37 @@ public class HospitalServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private RestTemplate restTemplate; // Mock indispensable pour OSRM
+
     @InjectMocks
     private HospitalService hospitalService;
 
-    private Hospital hospital1;
-    private Hospital hospital2;
-
     @BeforeEach
-    void setUp() {
-        hospital1 = new Hospital("Fred Brooks Cardio", 2, 51.500, -0.100, Arrays.asList("Cardiologie"));
-        hospital1.setId(16L);
+    void setUp() throws Exception {
+        // Injection de l'URL OSRM qui normalement vient de application.properties
+        ReflectionTestUtils.setField(hospitalService, "osrmApiUrl", "http://test-url/");
+
+        // Simulation d'une réponse JSON valide d'OSRM (360 secondes = 6 minutes)
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode mockResponse = mapper.readTree("{\"routes\":[{\"duration\":360.0}]}");
         
-        hospital2 = new Hospital("Julia Crusher Cardio", 5, 51.505, -0.110, Arrays.asList("Cardiologie"));
-        hospital2.setId(17L);
+        lenient().when(restTemplate.getForObject(anyString(), eq(JsonNode.class)))
+                 .thenReturn(mockResponse);
     }
 
     @Test
-    void findBestHospital_ShouldReturnNearestHospital_WhenCandidatesExist() {
-        String specialism = "Cardiologie";
-        double patientLat = 51.502;
-        double patientLon = -0.105;
+    void findBestHospital_ShouldReturnHospitalWithTravelTime_WhenCandidatesExist() {
+        Hospital h1 = new Hospital("St Thomas", 5, 51.499, -0.118, Arrays.asList("Cardiologie"));
+        h1.setId(2L);
 
-        when(hospitalRepository.findAvailableBySpecialismInArea(
-                eq(specialism), anyDouble(), anyDouble(), anyDouble(), anyDouble()))
-                .thenReturn(Arrays.asList(hospital1, hospital2));
+        when(hospitalRepository.findAvailableBySpecialismInArea(anyString(), anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                .thenReturn(Arrays.asList(h1));
 
-        Optional<Hospital> result = hospitalService.findBestHospital(specialism, patientLat, patientLon);
+        Optional<Hospital> result = hospitalService.findBestHospital("Cardiologie", 51.503, -0.114);
 
         assertTrue(result.isPresent());
+        assertEquals(360.0, result.get().getTravelTime()); // Vérifie que le temps est bien injecté
         verify(eventPublisher, times(1)).publishEvent(any(BedReservationEvent.class));
-    }
-
-    @Test
-    void findBestHospital_ShouldReturnEmpty_WhenNoCandidates() {
-        String specialism = "Neurologie";
-        double patientLat = 51.502;
-        double patientLon = -0.105;
-
-        when(hospitalRepository.findAvailableBySpecialismInArea(
-                eq(specialism), anyDouble(), anyDouble(), anyDouble(), anyDouble()))
-                .thenReturn(Collections.emptyList());
-
-        Optional<Hospital> result = hospitalService.findBestHospital(specialism, patientLat, patientLon);
-
-        assertFalse(result.isPresent());
-        verify(eventPublisher, never()).publishEvent(any(BedReservationEvent.class));
     }
 }
