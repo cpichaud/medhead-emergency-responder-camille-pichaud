@@ -6,6 +6,7 @@ Preuve de Concept (PoC) pour le système d'affectation des lits d'urgence MedHea
 - **Java 21**
 - **Node.js 20** (et npm)
 - **Git**
+- **Apache JMeter 5.6.3**
 
 ---
 
@@ -35,7 +36,12 @@ Les tests incluent la validation unitaire de logique métier (Mockito) et l'int�
 
 Les tests de stress de l'API ont également été réalisés via JMeter, le rapport est disponible dans la documentation d'architecture
 
----
+### Tests de stress JMeter
+
+Pour lancer le test, démarrer d’abord le back-end, puis exécuter depuis la racine du repository :
+
+```bash
+jmeter -n -t performance/jmeter/medhead-stress-test.jmx -l performance/jmeter/resultats.csv -e -o performance/jmeter/rapport_html
 
 ## Front-end (VueJS)
 
